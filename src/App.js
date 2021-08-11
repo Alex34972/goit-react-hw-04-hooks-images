@@ -1,5 +1,6 @@
+/* eslint-disable no-use-before-define */
 import React from 'react';
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import Searchbar from './components/searchbar';
 import Button from './components/button';
 import s from './App.module.css';
@@ -8,83 +9,59 @@ import LoaderComponent from './components/loader';
 import Modal from './components/modal';
 import imageAPI from './services/image-api';
 
-export default class App extends Component {
-  state = {
-    searchImages: '',
-    modalContent: '',
-    page: 1,
-    renderImages: [],
-    isLoading: false,
-    openModal: false,
-    error: null,
-  };
+export default function App() {
+  const [searchImages, setSearchImages] = useState('');
+  const [modalContent, setModalContent] = useState('');
+  const [page, setPage] = useState(1);
+  const [renderImages, setRenderImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [error, setError] = useState(null);
 
-  hadleChangeImage = image => {
-    this.setState({
-      searchImages: image,
-      page: 1,
-      renderImages: [],
-    });
-  };
+  useEffect(() => {
+    onScroll();
+    setIsLoading(true);
+    imageAPI
+      .fetchImages(searchImages, page)
+      .then(({ hits }) => {
+        setRenderImages(prevrenderImages => [...prevrenderImages, ...hits]);
+      })
+      .then(onScroll)
+      .catch(() => setError({ error }))
+      .finally(() => setIsLoading(false));
+  }, [error, page, searchImages]);
 
-  handleNextPage = () => {
-    this.setState(({ page }) => {
-      return { page: page + 1 };
-    });
+  const hadleChangeImage = searchImages => {
+    setSearchImages(searchImages);
+    setPage(1);
+    setRenderImages([]);
   };
-  onScroll = () => {
+  const handleNextPage = () => {
+    setPage(page => page + 1);
+  };
+  const onScroll = () => {
     window.scrollTo({
       top: document.documentElement.scrollHeight,
       behavior: 'smooth',
     });
   };
-  toggleModal = () => {
-    this.setState(({ openModal }) => ({ openModal: !openModal }));
-  };
-  toggleLoading = () => {
-    this.setState(({ isLoading }) => ({ isLoading: !isLoading }));
-  };
-  modalContentSet = itemId => {
-    const { renderImages } = this.state;
+  const toggleModal = () => setOpenModal(!openModal);
+
+  const modalContentSet = itemId => {
     const element = renderImages.find(({ id }) => id === itemId);
-    this.setState({ modalContent: element.largeImageURL });
+    setModalContent(element.largeImageURL);
   };
-  componentDidUpdate(prevProps, prevState) {
-    const { searchImages, page } = this.state;
-    if (prevState.searchImages !== searchImages || prevState.page !== page) {
-      this.toggleLoading();
-      this.onScroll();
-      imageAPI
-        .fetchImages(searchImages, page)
-        .then(({ hits }) => {
-          this.setState(({ renderImages }) => {
-            return { renderImages: [...renderImages, ...hits] };
-          });
-        })
-        .then(this.onScroll)
-        .catch(error => this.setState({ error }))
-        .finally(this.toggleLoading);
-    }
-  }
-  render() {
-    const { renderImages, isLoading, page, modalContent, openModal } =
-      this.state;
-    const isNotLastPage = renderImages.length / page === 12;
-    const btnBeView = renderImages.length > 0 && isNotLastPage;
-    return (
-      <div className={s.App}>
-        <Searchbar onSubmit={this.hadleChangeImage} />
-        <ImageGallery
-          images={renderImages}
-          onClick={this.toggleModal}
-          onItemClick={this.modalContentSet}
-        />
-        {openModal && (
-          <Modal content={modalContent} onClose={this.toggleModal} />
-        )}
-        {isLoading && <LoaderComponent />}
-        {btnBeView && <Button onMore={this.handleNextPage} />}
-      </div>
-    );
-  }
+  return (
+    <div className={s.App}>
+      <Searchbar onSubmit={hadleChangeImage} />
+      <ImageGallery
+        images={renderImages}
+        onClick={toggleModal}
+        onItemClick={modalContentSet}
+      />
+      {openModal && <Modal content={modalContent} onClose={toggleModal} />}
+      {isLoading && <LoaderComponent />}
+      <Button onMore={handleNextPage} />
+    </div>
+  );
 }
