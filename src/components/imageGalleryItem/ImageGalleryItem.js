@@ -14,7 +14,7 @@ export default class ImageGalleryItem extends Component {
         <img
           src={webformatURL}
           alt={tags}
-          className={s.ImageGalleryItem_image}
+          className={s.ImageGalleryItem__image}
           onClick={() => this.modalContent(id)}
         />
       </li>
