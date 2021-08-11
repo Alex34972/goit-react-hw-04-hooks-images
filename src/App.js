@@ -19,16 +19,17 @@ export default function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    onScroll();
-    setIsLoading(true);
-    imageAPI
-      .fetchImages(searchImages, page)
-      .then(({ hits }) => {
-        setRenderImages(prevrenderImages => [...prevrenderImages, ...hits]);
-      })
-      .then(onScroll)
-      .catch(() => setError({ error }))
-      .finally(() => setIsLoading(false));
+    if (searchImages !== '') {
+      setIsLoading(true);
+      imageAPI
+        .fetchImages(searchImages, page)
+        .then(({ hits }) => {
+          setRenderImages(prevrenderImages => [...prevrenderImages, ...hits]);
+        })
+        .then(onScroll)
+        .catch(() => setError({ error }))
+        .finally(() => setIsLoading(false));
+    }
   }, [error, page, searchImages]);
 
   const hadleChangeImage = searchImages => {
@@ -45,12 +46,15 @@ export default function App() {
       behavior: 'smooth',
     });
   };
+
   const toggleModal = () => setOpenModal(!openModal);
 
   const modalContentSet = itemId => {
     const element = renderImages.find(({ id }) => id === itemId);
     setModalContent(element.largeImageURL);
   };
+  const isNotLastPage = renderImages.length / page === 12;
+  const btnBeView = renderImages.length > 0 && isNotLastPage;
   return (
     <div className={s.App}>
       <Searchbar onSubmit={hadleChangeImage} />
@@ -61,7 +65,7 @@ export default function App() {
       />
       {openModal && <Modal content={modalContent} onClose={toggleModal} />}
       {isLoading && <LoaderComponent />}
-      <Button onMore={handleNextPage} />
+      {btnBeView && <Button onMore={handleNextPage} />}
     </div>
   );
 }
